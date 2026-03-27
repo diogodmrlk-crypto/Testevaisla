@@ -20,11 +20,12 @@ export interface AlertData {
 interface AuthContextType {
   isLoggedIn: boolean;
   session: SessionData | null;
-  sessionId: string | null;
+  sessionId: string;
   login: (key: string, hwid: string) => Promise<{ success: boolean; message: string }>;
   logout: () => void;
   pendingAlerts: AlertData[];
   dismissAlert: (id: string) => void;
+  forceRefreshSession: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -38,6 +39,19 @@ function getOrCreateSessionId(): string {
   return id;
 }
 
+async function safeFetch(url: string, options?: RequestInit): Promise<Response | null> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 8000);
+  try {
+    const res = await fetch(url, { ...options, signal: controller.signal });
+    clearTimeout(timer);
+    return res;
+  } catch {
+    clearTimeout(timer);
+    return null;
+  }
+}
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [session, setSession] = useState<SessionData | null>(null);
@@ -48,38 +62,37 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const alertPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const sessionRef = useRef<SessionData | null>(null);
   sessionRef.current = session;
+  const sessionIdRef = useRef(sessionId);
+  sessionIdRef.current = sessionId;
 
   const registerSession = useCallback(async (s: SessionData) => {
-    try {
-      await fetch('/api/sessions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          key: s.activeKey,
-          keyLevel: s.keyLevel,
-          hwid: s.keyHwid,
-          sessionId,
-        }),
-        signal: AbortSignal.timeout(6000),
-      });
-    } catch {}
-  }, [sessionId]);
+    const res = await safeFetch('/api/sessions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        key: s.activeKey,
+        keyLevel: s.keyLevel,
+        hwid: s.keyHwid,
+        sessionId: sessionIdRef.current,
+      }),
+    });
+    if (!res) console.warn('[Auth] registerSession falhou - sem resposta');
+    else if (!res.ok) console.warn('[Auth] registerSession erro', res.status);
+  }, []);
 
   const pollAlerts = useCallback(async () => {
-    try {
-      const res = await fetch(`/api/alerts/${sessionId}`, { signal: AbortSignal.timeout(5000) });
-      if (res.ok) {
-        const alerts: AlertData[] = await res.json();
-        if (alerts.length > 0) {
-          setPendingAlerts(prev => {
-            const existingIds = new Set(prev.map(a => a.id));
-            const newOnes = alerts.filter(a => !existingIds.has(a.id));
-            return [...prev, ...newOnes];
-          });
-        }
+    const res = await safeFetch(`/api/alerts/${sessionIdRef.current}`);
+    if (res && res.ok) {
+      const alerts: AlertData[] = await res.json();
+      if (alerts.length > 0) {
+        setPendingAlerts(prev => {
+          const existingIds = new Set(prev.map(a => a.id));
+          const newOnes = alerts.filter(a => !existingIds.has(a.id));
+          return newOnes.length > 0 ? [...prev, ...newOnes] : prev;
+        });
       }
-    } catch {}
-  }, [sessionId]);
+    }
+  }, []);
 
   const startHeartbeat = useCallback((s: SessionData) => {
     if (heartbeatRef.current) clearInterval(heartbeatRef.current);
@@ -88,7 +101,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     heartbeatRef.current = setInterval(() => {
       const cur = sessionRef.current;
       if (cur) registerSession(cur);
-    }, 60_000);
+    }, 30_000);
 
     alertPollRef.current = setInterval(pollAlerts, 8_000);
     pollAlerts();
@@ -99,32 +112,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (alertPollRef.current) { clearInterval(alertPollRef.current); alertPollRef.current = null; }
   }, []);
 
+  const forceRefreshSession = useCallback(() => {
+    const cur = sessionRef.current;
+    if (cur) registerSession(cur);
+  }, [registerSession]);
+
   useEffect(() => {
     const savedSession = localStorage.getItem('authSession');
     if (savedSession) {
       try {
-        const parsed = JSON.parse(savedSession);
+        const parsed = JSON.parse(savedSession) as SessionData;
         setSession(parsed);
         setIsLoggedIn(true);
         registerSession(parsed).then(() => startHeartbeat(parsed));
-      } catch {}
+      } catch {
+        localStorage.removeItem('authSession');
+      }
     }
-    return () => stopHeartbeat();
+    return stopHeartbeat;
   }, []);
 
   const login = async (key: string, hwid: string): Promise<{ success: boolean; message: string }> => {
     const upperKey = key.toUpperCase().trim();
     if (!upperKey) return { success: false, message: 'Por favor, insira uma key.' };
 
-    try {
-      const banRes = await fetch('/api/check-ban', { signal: AbortSignal.timeout(5000) });
-      if (banRes.ok) {
-        const banData = await banRes.json();
-        if (banData.banned) {
-          return { success: false, message: '🚫 Seu IP está banido. Contate o suporte.' };
-        }
-      }
-    } catch {}
+    const banRes = await safeFetch('/api/check-ban');
+    if (banRes && banRes.ok) {
+      const banData = await banRes.json();
+      if (banData.banned) return { success: false, message: '🚫 Seu IP está banido. Contate o suporte.' };
+    }
 
     const keyData = keysDatabase.keys[upperKey];
     if (!keyData) return { success: false, message: 'Key inválida ou não encontrada!' };
@@ -162,18 +178,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const dismissAlert = useCallback(async (id: string) => {
     setPendingAlerts(prev => prev.filter(a => a.id !== id));
-    try {
-      await fetch(`/api/alerts/${id}/read`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sessionId }),
-        signal: AbortSignal.timeout(5000),
-      });
-    } catch {}
-  }, [sessionId]);
+    await safeFetch(`/api/alerts/${id}/read`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sessionId: sessionIdRef.current }),
+    });
+  }, []);
 
   return (
-    <AuthContext.Provider value={{ isLoggedIn, session, sessionId, login, logout, pendingAlerts, dismissAlert }}>
+    <AuthContext.Provider value={{ isLoggedIn, session, sessionId, login, logout, pendingAlerts, dismissAlert, forceRefreshSession }}>
       {children}
     </AuthContext.Provider>
   );
