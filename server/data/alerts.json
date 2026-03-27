@@ -1,0 +1,14 @@
+{
+  "alerts": [
+    {
+      "id": "06beb819-d387-4777-ba62-2c6e2452b6ac",
+      "to": "sess-pl2ervorlbmn8z8xwj",
+      "message": "TESTE",
+      "sender": "DEV",
+      "type": "warning",
+      "createdAt": 1774620557470,
+      "readBy": [
+        "sess-pl2ervorlbmn8z8xwj"
+      ]
+    }
+  ]
