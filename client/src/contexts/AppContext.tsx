@@ -25,7 +25,7 @@ export interface Package {
   sent: number;
 }
 
-type Page = 'home' | 'keys' | 'devices' | 'packages' | 'profile';
+type Page = 'home' | 'keys' | 'devices' | 'packages' | 'profile' | 'admin';
 type Modal = 'create' | 'pkg' | 'integration' | 'device-action' | 'lang' | 'support' | null;
 
 const STORAGE = {
