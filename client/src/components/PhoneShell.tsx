@@ -6,9 +6,10 @@ import Keys from '../pages/Keys';
 import Devices from '../pages/Devices';
 import Packages from '../pages/Packages';
 import Profile from '../pages/Profile';
+import AdminPanel from '../pages/AdminPanel';
 import { CreateModal, PkgModal, IntegrationModal, DeviceActionModal, LangModal, SupportModal } from './Modals';
 
-type Page = 'home' | 'keys' | 'devices' | 'packages' | 'profile';
+type Page = 'home' | 'keys' | 'devices' | 'packages' | 'profile' | 'admin';
 
 const NAV_ITEMS: { id: Page; label: string; icon: React.ReactNode }[] = [
   {
@@ -54,6 +55,7 @@ export default function PhoneShell() {
       case 'devices': return <Devices />;
       case 'packages': return <Packages />;
       case 'profile': return <Profile />;
+      case 'admin': return isDev ? <AdminPanel /> : <HomeContent />;
       default: return <HomeContent />;
     }
   };
@@ -74,14 +76,14 @@ export default function PhoneShell() {
         ))}
         {isDev && (
           <div
-            className="nav-item"
-            onClick={() => window.location.href = '/admin'}
-            style={{ color: '#f59e0b' }}
+            className={`nav-item${currentPage === 'admin' ? ' active' : ''}`}
+            onClick={() => navigate('admin')}
+            style={{ color: currentPage === 'admin' ? '#f59e0b' : undefined }}
           >
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
             </svg>
-            <span className="nav-label">Admin</span>
+            <span className="nav-label" style={{ color: currentPage === 'admin' ? '#f59e0b' : undefined }}>Admin</span>
           </div>
         )}
       </nav>
