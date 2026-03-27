@@ -30,7 +30,7 @@ function timeAgo(ms: number) {
 }
 
 export default function AdminPanel() {
-  const { session } = useAuth();
+  const { session, forceRefreshSession } = useAuth();
   const { navigate, showToast } = useApp();
   const [tab, setTab] = useState<Tab>('accounts');
   const [sessions, setSessions] = useState<SessionUser[]>([]);
@@ -43,19 +43,20 @@ export default function AdminPanel() {
 
   const fetchSessions = async () => {
     try {
-      const res = await fetch('/api/sessions', { signal: AbortSignal.timeout(5000) });
+      const res = await fetch('/api/sessions');
       if (res.ok) setSessions(await res.json());
     } catch {}
   };
 
   const fetchBans = async () => {
     try {
-      const res = await fetch('/api/bans', { signal: AbortSignal.timeout(5000) });
+      const res = await fetch('/api/bans');
       if (res.ok) setBans(await res.json());
     } catch {}
   };
 
   useEffect(() => {
+    forceRefreshSession();
     fetchSessions();
     fetchBans();
     pollRef.current = setInterval(() => {
