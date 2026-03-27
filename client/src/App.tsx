@@ -7,7 +7,6 @@ import { ThemeProvider } from "./contexts/ThemeContext";
 import { AppProvider } from "./contexts/AppContext";
 import { useAuth } from "./contexts/AuthContext";
 import PhoneShell from "./components/PhoneShell";
-import AdminPanel from "./pages/AdminPanel";
 import GlobalNotifications from "./components/GlobalNotifications";
 import InstallPrompt from "./components/InstallPrompt";
 
@@ -21,7 +20,6 @@ function AppWithSession() {
       <InstallPrompt />
       <Switch>
         <Route path="/" component={PhoneShell} />
-        <Route path="/admin" component={AdminPanel} />
         <Route path="/404" component={NotFound} />
         <Route component={NotFound} />
       </Switch>
