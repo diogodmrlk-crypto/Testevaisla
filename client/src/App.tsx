@@ -1,87 +1,48 @@
-import { useAuth } from './contexts/AuthContext';
-import { AppProvider, useApp } from './contexts/AppContext';
-import Login from './pages/Login';
-import Home from './pages/Home';
-import Keys from './pages/Keys';
-import Devices from './pages/Devices';
-import Packages from './pages/Packages';
-import Profile from './pages/Profile';
-import { CreateModal, PkgModal, IntegrationModal, DeviceActionModal, LangModal, SupportModal } from './components/Modals';
+import { Toaster } from "@/components/ui/sonner";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import NotFound from "@/pages/NotFound";
+import { Route, Switch } from "wouter";
+import ErrorBoundary from "./components/ErrorBoundary";
+import { ThemeProvider } from "./contexts/ThemeContext";
+import Home from "./pages/Home";
+import AdminPanel from "./pages/AdminPanel";
+import GlobalNotifications from "./components/GlobalNotifications";
+import InstallPrompt from "./components/InstallPrompt";
 
-function BottomNav() {
-  const { currentPage, navigate } = useApp();
+function Router() {
+  // make sure to consider if you need authentication for certain routes
   return (
-    <nav className="bottom-nav">
-      <div className={`nav-item${currentPage === 'home' ? ' active' : ''}`} onClick={() => navigate('home')}>
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="3" width="7" height="7" rx="1.5" opacity="0.85"/><rect x="14" y="3" width="7" height="7" rx="1.5" opacity="0.85"/><rect x="3" y="14" width="7" height="7" rx="1.5" opacity="0.85"/><rect x="14" y="14" width="7" height="7" rx="1.5" opacity="0.85"/></svg>
-        <span className="nav-label">Home</span>
-      </div>
-      <div className={`nav-item${currentPage === 'keys' ? ' active' : ''}`} onClick={() => navigate('keys')}>
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="7.5" cy="15.5" r="5.5"/><path d="m21 2-9.6 9.6M15.5 7.5l3 3"/></svg>
-        <span className="nav-label">Keys</span>
-      </div>
-      <div className={`nav-item${currentPage === 'devices' ? ' active' : ''}`} onClick={() => navigate('devices')}>
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
-        <span className="nav-label">Devices</span>
-      </div>
-      <div className={`nav-item${currentPage === 'packages' ? ' active' : ''}`} onClick={() => navigate('packages')}>
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
-        <span className="nav-label">Pacotes</span>
-      </div>
-      <div className={`nav-item${currentPage === 'profile' ? ' active' : ''}`} onClick={() => navigate('profile')}>
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-        <span className="nav-label">Perfil</span>
-      </div>
-    </nav>
+    <Switch>
+      <Route path={"/"} component={Home} />
+      <Route path={"/admin"} component={AdminPanel} />
+      <Route path={"/404"} component={NotFound} />
+      {/* Final fallback route */}
+      <Route component={NotFound} />
+    </Switch>
   );
 }
 
-function Toast() {
-  const { toast } = useApp();
-  if (!toast) return null;
-  return <div className="toast">{toast}</div>;
-}
+// NOTE: About Theme
+// - First choose a default theme according to your design style (dark or light bg), than change color palette in index.css
+//   to keep consistent foreground/background color across components
+// - If you want to make theme switchable, pass `switchable` ThemeProvider and use `useTheme` hook
 
-function MainApp() {
-  const { currentPage } = useApp();
+function App() {
   return (
-    <div className="phone">
-      {currentPage === 'home' && <Home />}
-      {currentPage === 'keys' && <Keys />}
-      {currentPage === 'devices' && <Devices />}
-      {currentPage === 'packages' && <Packages />}
-      {currentPage === 'profile' && <Profile />}
-      <BottomNav />
-      <CreateModal />
-      <PkgModal />
-      <IntegrationModal />
-      <DeviceActionModal />
-      <LangModal />
-      <SupportModal />
-      <Toast />
-    </div>
+    <ErrorBoundary>
+      <ThemeProvider
+        defaultTheme="light"
+        // switchable
+      >
+        <TooltipProvider>
+          <Toaster />
+          <GlobalNotifications />
+          <InstallPrompt />
+          <Router />
+        </TooltipProvider>
+      </ThemeProvider>
+    </ErrorBoundary>
   );
 }
 
-function AppInner() {
-  const { isLoggedIn, session } = useAuth();
-  const keyLimit = session?.keyData?.limit ?? 500;
-
-  if (!isLoggedIn) {
-    return (
-      <div className="phone">
-        <Login />
-      </div>
-    );
-  }
-
-  return (
-    <AppProvider keyLimit={keyLimit}>
-      <MainApp />
-    </AppProvider>
-  );
-}
-
-export default function App() {
-  return <AppInner />;
-}
+export default App;
