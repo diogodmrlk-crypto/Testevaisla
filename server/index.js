@@ -38,7 +38,7 @@ function getClientIP(req) {
   return req.socket?.remoteAddress || 'unknown';
 }
 
-const SESSION_TTL = 5 * 60 * 1000;
+const SESSION_TTL = 10 * 60 * 1000;
 
 function cleanSessions(data) {
   const now = Date.now();
@@ -72,8 +72,9 @@ app.get('/api/sessions', (req, res) => {
 });
 
 app.post('/api/sessions', (req, res) => {
-  const { key, keyLevel, hwid, sessionId } = req.body;
+  const { key, keyLevel, hwid, sessionId } = req.body || {};
   const ip = getClientIP(req);
+  console.log(`[SESSION] POST key=${key} level=${keyLevel} id=${sessionId} ip=${ip}`);
 
   const bans = readJSON('bans.json');
   if ((bans.bannedIps || []).some(b => b.ip === ip)) {
