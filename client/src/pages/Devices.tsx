@@ -33,7 +33,7 @@ export default function Devices() {
     setSessionsLoading(true);
     setSessionsError('');
     try {
-      const res = await fetch('https://teste-api-mcok.vercel.app/keys', { signal: AbortSignal.timeout(10000) });
+      const res = await fetch('https://69b9908ce69653ffe6a81689.mockapi.io/api/v1/404', { signal: AbortSignal.timeout(10000) });
       const data = await res.json();
       const seenDevices = new Map<string, Session>();
       data.forEach((k: { used: boolean; device: string; activatedAt?: number; expiresAt?: number; ip?: string; clientIp?: string; userIp?: string; ipAddress?: string; version?: string; osVersion?: string }) => {
