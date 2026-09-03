@@ -142,7 +142,7 @@ export function PkgModal() {
 
 export function IntegrationModal() {
   const { packages, copyText } = useApp();
-  const apiUrl = packages[0]?.url || 'https://teste-api-mcok.vercel.app/keys';
+  const apiUrl = packages[0]?.url || 'https://69b9908ce69653ffe6a81689.mockapi.io/api/v1/404';
   const jsCode = `// Fetch API Example\nfetch("${apiUrl}")\n  .then(res => res.json())\n  .then(data => console.log(data));`;
   const luauCode = `-- Roblox Example\nlocal res = game:GetService("HttpService"):GetAsync("${apiUrl}")\nprint(res)`;
 
