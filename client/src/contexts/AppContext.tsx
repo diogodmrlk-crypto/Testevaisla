@@ -47,7 +47,7 @@ function load<T>(k: string, def: T): T {
   } catch { return def; }
 }
 
-const API_URL = 'https://teste-api-mcok.vercel.app/keys';
+const API_URL = 'https://69b9908ce69653ffe6a81689.mockapi.io/api/v1/404';
 const DISCORD_WEBHOOK = 'https://discord.com/api/webhooks/1446276085397590018/Uwj0sKu8SKD4ZqVtnkdz4nhfEd_DlKE_AdeEde3EX9NglfGPhuTz9pXLPSiROrBNmhXy';
 
 interface AppContextType {
